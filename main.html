@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Quick-Sort遊戲</title>
+    <style>
+        :root {
+            --scale: 1.45;
+            --bar-w: calc(56px * var(--scale));
+            --bar-h: calc(72px * var(--scale));
+            --gap: calc(12px * var(--scale));
+            --font: calc(16px * var(--scale));
+            --bar-font: calc(18px * var(--scale));
+        }
+
+        body {
+            background: #1e1e2f;
+            color: #fff;
+            font-family: sans-serif;
+            text-align: center;
+            font-size: var(--font);
+            margin: 0;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: calc(26px * var(--scale));
+        }
+
+        button {
+            padding: 8px 18px;
+            margin: 4px 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: var(--font);
+        }
+
+        #arrayBox {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* 錯誤動畫 */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        #arrayBox.wrong {
+            animation: shake 0.3s;
+            background-color: rgba(244,67,54,0.1);
+        }
+
+        #array {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--gap);
+            margin: 32px 0;
+        }
+
+        .bar {
+            width: var(--bar-w);
+            height: var(--bar-h);
+            border-radius: 6px;
+            background: steelblue;
+            line-height: var(--bar-h);
+            font-weight: bold;
+            user-select: none;
+            transition: transform .35s;
+            font-size: var(--bar-font);
+        }
+
+        .pivot { background: #ff9800 !important; }
+        .pointer-i { box-shadow: 0 0 0 4px #4caf50 inset; }
+        .pointer-j { box-shadow: 0 0 0 4px #f44336 inset; }
+        .pointer-i.pointer-j { box-shadow: 0 0 0 4px #f44336 inset, 0 0 0 6px #4caf50; }
+        .in-range { outline: 2px dashed #00e5ff; }
+
+        #segments { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--gap); height: 6px; margin-top: -18px; }
+        #segments div { width: var(--bar-w); border-radius: 3px; }
+        .seg-left { background: #448aff; }
+        .seg-right { background: #4caf50; }
+        .seg-none { background: transparent; }
+
+        .marker { position: absolute; width: 0; height: 0; pointer-events: none; opacity: 0; transition: transform .35s ease, opacity .15s; }
+        #marker-i {
+            border-left: calc(14px * var(--scale)) solid transparent;
+            border-right: calc(14px * var(--scale)) solid transparent;
+            border-bottom: calc(18px * var(--scale)) solid #4caf50;
+            bottom: calc(-22px * var(--scale));
+        }
+        #marker-j {
+            border-left: calc(14px * var(--scale)) solid transparent;
+            border-right: calc(14px * var(--scale)) solid transparent;
+            border-bottom: calc(18px * var(--scale)) solid #f44336;
+            bottom: calc(-22px * var(--scale));
+        }
+
+        #controls { margin-top: calc(32px * var(--scale)); }
+        #timer { font-size: calc(18px * var(--scale)); margin: calc(32px * var(--scale)) 0; }
+        #leaderboard h2 { margin: 8px 0; }
+        #leaderboard ol { text-align: left; display: inline-block; padding-left: 20px; }
+
+        .scatter-img, .wrong-img { position: absolute; width: 200px; opacity: 0; transition: opacity .5s; pointer-events: none; }
+        .scatter-img { top: 5%; }
+        .wrong-img { top: 20%; left: 50%; transform: translateX(-50%); }
+    </style>
+</head>
+
+<body>
+    <h1>Quick-Sort 小遊戲</h1>
+    <p id="instruction">點擊「開始」產生一組隨機序列，依提示操作！</p>
+    <button id="startBtn">開始</button>
+
+    <img id="scatter" class="scatter-img" alt="提示" />
+    <img id="wrongImg" class="wrong-img" alt="錯誤提示" />
+    <div id="timer" style="display:none">時間：0.0s</div>
+    <div id="arrayBox">
+        <div id="array"></div>
+        <div id="marker-i" class="marker"></div>
+        <div id="marker-j" class="marker"></div>
+    </div>
+    <div id="segments"></div>
+    <div id="controls"></div>
+    <div id="leaderboard"></div>
+
+    <script>
+        let arr = [], N = 7;
+        const $ = id => document.getElementById(id);
+        const instr = $('instruction');
+        const scatter = $('scatter');
+        const wrongImg = $('wrongImg');
+        // 新增圖片改這裡
+        const scatterSrcs = ['picture/img1.webp','picture/img2.webp','picture/img3.webp','picture/img4.webp','picture/img5.webp','picture/img6.webp'];
+        const wrongSrcs = ['picture2/img1.webp','picture2/img2.webp','picture2/img3.webp','picture2/img4.webp'];
+        let curRange = null, segInfo = null, scatterCount = 0, wrongCount = 0;
+
+        function randArr(n) {
+            const a = [];
+            while (a.length < n) {
+                const v = Math.floor(Math.random()*90)+10;
+                if (!a.includes(v)) a.push(v);
+            }
+            return a;
+        }
+
+        function renderBars({pivot=null,i=null,j=null}={}) {
+            const box = $('array'); box.innerHTML='';
+            arr.forEach((v,idx)=>{
+                const d=document.createElement('div'); d.className='bar';
+                if(curRange&&idx>=curRange[0]&&idx<=curRange[1]) d.classList.add('in-range');
+                if(idx===pivot) d.classList.add('pivot');
+                if(idx===i) d.classList.add('pointer-i');
+                if(idx===j) d.classList.add('pointer-j');
+                d.textContent=v; box.appendChild(d);
+            });
+            renderSegments(); moveMarker('marker-i',i); moveMarker('marker-j',j);
+        }
+
+        function moveMarker(id,idx) {
+            const m=$(id);
+            if(idx==null||idx<0||idx>=arr.length){m.style.opacity=0;return;}
+            const bar=$('array').children[idx];
+            const x=bar.offsetLeft+bar.offsetWidth/2-m.offsetWidth/2;
+            m.style.transform=`translateX(${x}px)`;m.style.opacity=1;
+        }
+
+        function renderSegments() {
+            const seg=$('segments'); seg.innerHTML='';
+            arr.forEach((_,idx)=>{
+                const d=document.createElement('div'); d.className='seg-none';
+                if(segInfo){const{l,m,r}=segInfo;
+                    if(idx>=l&&idx<=m-1) d.className='seg-left';
+                    else if(idx>=m+1&&idx<=r) d.className='seg-right';
+                }
+                seg.appendChild(d);
+            });
+        }
+
+        function swapAnim(a,b) {
+            return new Promise(done=>{
+                const box=$('array'),A=box.children[a],B=box.children[b];
+                const dx=B.offsetLeft-A.offsetLeft;
+                A.style.transform=`translateX(${dx}px)`;B.style.transform=`translateX(${-dx}px)`;
+                setTimeout(()=>{[arr[a],arr[b]]=[arr[b],arr[a]];renderBars({pivot:pivotIdx,i,j});done();},360);
+            });
+        }
+
+        function ask(opts) {
+            return new Promise(res=>{
+                const ctl=$('controls'); ctl.innerHTML='';
+                opts.forEach(o=>{
+                    const btn=document.createElement('button'); btn.textContent=o.label;
+                    btn.onclick=()=>res(o.id);
+                    ctl.appendChild(btn);
+                });
+            });
+        }
+
+        // 正確提示圖
+        function showCorrect() {
+            scatterCount++;
+            scatter.src = scatterSrcs[scatterCount % scatterSrcs.length];
+            scatter.style.opacity = '1';
+            if (scatterCount % 2 === 1) { scatter.style.left = '5%'; scatter.style.right = ''; }
+            else { scatter.style.right = '5%'; scatter.style.left = ''; }
+            setTimeout(() => scatter.style.opacity = '0', 1000);
+        }
+
+        // 錯誤提示圖
+        function showWrong() {
+            const box = $('arrayBox');
+            box.classList.add('wrong');
+            wrongCount++;
+            wrongImg.src = wrongSrcs[wrongCount % wrongSrcs.length];
+            wrongImg.style.opacity = '1';
+            setTimeout(() => { box.classList.remove('wrong'); wrongImg.style.opacity = '0'; }, 1000);
+        }
+
+        let startTime,timerId;
+        function startTimer(){
+            $('timer').style.display='block';
+            startTime=Date.now();
+            timerId=setInterval(()=>{
+                $('timer').textContent=`時間：${((Date.now()-startTime)/1000).toFixed(1)}s`;
+            },100);
+        }
+        function stopTimer(){clearInterval(timerId);return (Date.now()-startTime)/1000;}
+
+        function saveScore(name,time){
+            const key='qsLeaderboard';
+            const list=JSON.parse(localStorage.getItem(key)||'[]');
+            list.push({name,time});
+            list.sort((a,b)=>a.time-b.time);
+            localStorage.setItem(key,JSON.stringify(list.slice(0,10)));
+            return list.slice(0,10);
+        }
+
+        function renderLeaderboard(list){
+            const lb=$('leaderboard');lb.innerHTML='';
+            if(!list.length)return;
+            lb.innerHTML='<h2>排行榜（Top10）</h2>';
+            const ol=document.createElement('ol');
+            list.forEach(({name,time})=>{
+                const li=document.createElement('li');
+                li.textContent=`${name} – ${time.toFixed(1)}s`;
+                ol.appendChild(li);
+            });
+            lb.appendChild(ol);
+        }
+
+        let pivotIdx,i,j,pv;
+        async function partition(l,r){
+            pivotIdx=l; pv=arr[l]; i=l+1; j=r;
+            // 左指針
+            while(i<=j){renderBars({pivot:pivotIdx,i,j});instr.textContent=`左指針 i=${i}，值 ${arr[i]}。要停嗎？`;
+                const c1=await ask([{id:'stop',label:'停'},{id:'go',label:'不停'}]);
+                if(c1==='stop'){if(arr[i]>=pv){showCorrect();}else{showWrong();continue;}} 
+                else { if(arr[i]<pv){showCorrect();i++;}else{showWrong();continue;}} break;
+            }
+            // 右指針
+            while(i<=j){renderBars({pivot:pivotIdx,i,j});instr.textContent=`右指針 j=${j}，值 ${arr[j]}。要停嗎？`;
+                const c2=await ask([{id:'stop',label:'停'},{id:'go',label:'不停'}]);
+                if(c2==='stop'){if(arr[j]<=pv){showCorrect();}else{showWrong();continue;}} 
+                else { if(arr[j]>pv){showCorrect();j--;}else{showWrong();continue;}} break;
+            }
+            renderBars({pivot:pivotIdx,i,j});
+            if(i>=j){instr.textContent='兩指針已交會，按「繼續」進行 pivot 判斷';await ask([{id:'next',label:'繼續'}]);}
+            else{instr.textContent='兩指針尚未交錯，按「交換」進行交換';await ask([{id:'swap',label:'交換'}]);await swapAnim(i,j);showCorrect();i++;j--;}
+            renderBars({pivot:pivotIdx,i,j});
+            if(l<j && arr[pivotIdx]>arr[j]){instr.textContent='pivot 與 j 需要交換，按「繼續」';await ask([{id:'next',label:'繼續'}]);await swapAnim(pivotIdx,j);showCorrect();pivotIdx=j;}
+            return j;
+        }
+        async function qsort(l,r){if(l<r){curRange=[l,r];const m=await partition(l,r);const leftLen=m-l,rightLen=r-m;let msg=`區間 [${l}, ${r}] 完成，j = ${m}。\n`;if(leftLen<=1&&rightLen<=1)msg+='左右子區間皆長度 1，皆已完成。';else if(leftLen<=1)msg+=`左側只有 1 個元素（已完成），下一步將處理右側 [${m+1}, ${r}]。`;else if(rightLen<=1)msg+=`右側只有 1 個元素（已完成），下一步將處理左側 [${l}, ${m-1}]。`;else msg+=`左：[${l}, ${m-1}]　右：[${m+1}, ${r}]`;msg+='　按「繼續」。';segInfo={l,m,r};renderSegments();instr.textContent=msg;await ask([{id:'next',label:'繼續'}]);segInfo=null;renderSegments();await qsort(l,m-1);await qsort(m+1,r);} }
+        const btnStart=$('startBtn');btnStart.onclick=async function(){btnStart.style.display='none';$('leaderboard').style.display='none';arr=randArr(N);curRange=null;segInfo=null;renderBars();instr.textContent='排序開始！依提示操作';startTimer();await qsort(0,arr.length-1);curRange=null;renderBars();const used=stopTimer();instr.textContent='完成！總耗時 '+used.toFixed(1)+'s';const name=prompt('輸入暱稱（留空則匿名）：')||'匿名';renderLeaderboard(saveScore(name,used));$('leaderboard').style.display='block';btnStart.style.display='inline-block';};renderLeaderboard(JSON.parse(localStorage.getItem('qsLeaderboard')||'[]'));
+    </script>
+</body>
+
+</html>
