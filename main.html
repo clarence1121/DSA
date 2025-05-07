@@ -1,74 +1,341 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>Quick-Sort 小遊戲 (修正版)</title>
-  <style>
-    :root {
-      --scale: 1.45;
-      --bar-w: calc(56px * var(--scale));
-      --bar-h: calc(72px * var(--scale));
-      --gap: calc(12px * var(--scale));
-      --font: calc(16px * var(--scale));
-      --bar-font: calc(18px * var(--scale));
-    }
-    body {
-      background: #1e1e2f;
-      color: #fff;
-      font-family: sans-serif;
-      text-align: center;
-      font-size: var(--font);
-      margin: 0;
-    }
-    h1 { margin: 20px 0; font-size: calc(26px * var(--scale)); }
-    button {
-      padding: 8px 18px; margin: 4px 8px; border: none; border-radius: 6px;
-      cursor: pointer; font-size: var(--font);
-    }
-    #arrayBox{ position:relative; display:inline-block; }
-    @keyframes shake{0%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(5px);}75%{transform:translateX(-5px);}100%{transform:translateX(0);}}
-    #arrayBox.wrong{animation:shake .3s; background:rgba(244,67,54,.1);}
-    #array{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--gap);margin:32px 0;}
-    .bar{width:var(--bar-w);height:var(--bar-h);border-radius:6px;background:steelblue;line-height:var(--bar-h);font-weight:bold;user-select:none;transition:transform .35s;font-size:var(--bar-font);}
-    .pivot{background:#ff9800!important;} .pointer-i{box-shadow:0 0 0 4px #4caf50 inset;} .pointer-j{box-shadow:0 0 0 4px #f44336 inset;} .pointer-i.pointer-j{box-shadow:0 0 0 4px #f44336 inset,0 0 0 6px #4caf50;} .in-range{outline:2px dashed #00e5ff;}
-    #segments{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--gap);height:6px;margin-top:-18px;} #segments div{width:var(--bar-w);border-radius:3px;} .seg-left{background:#448aff;} .seg-right{background:#4caf50;} .seg-none{background:transparent;}
-    .marker{position:absolute;width:0;height:0;pointer-events:none;opacity:0;transition:transform .35s ease,opacity .15s;}
-    #marker-i{border-left:calc(14px * var(--scale)) solid transparent;border-right:calc(14px * var(--scale)) solid transparent;border-bottom:calc(18px * var(--scale)) solid #4caf50;bottom:calc(-22px * var(--scale));}
-    #marker-j{border-left:calc(14px * var(--scale)) solid transparent;border-right:calc(14px * var(--scale)) solid transparent;border-bottom:calc(18px * var(--scale)) solid #f44336;bottom:calc(-22px * var(--scale));}
-    #controls{margin-top:calc(32px * var(--scale));}
-    #timer{font-size:calc(18px * var(--scale));margin:calc(32px * var(--scale)) 0;}
-    #leaderboard h2{margin:8px 0;} #leaderboard ol{text-align:left;display:inline-block;padding-left:20px;}
-    .scatter-img,.wrong-img{position:absolute;width:300px;opacity:0;transition:opacity .5s;pointer-events:none;z-index:999;}
-    .scatter-img{top:5%;} .wrong-img{top:20%;left:50%;transform:translateX(-50%);z-index:999;}
-  </style>
+<meta charset="UTF-8" />
+<title>Quick-Sort 小遊戲 (修正版)</title>
+<style>
+  :root{--scale:1.45;--bar-w:calc(56px*var(--scale));--bar-h:calc(72px*var(--scale));
+        --gap:calc(12px*var(--scale));--font:calc(16px*var(--scale));--bar-font:calc(18px*var(--scale));}
+  body{background:#1e1e2f;color:#fff;font-family:sans-serif;text-align:center;font-size:var(--font);margin:0;transition: background-color 0.8s ease-in-out;}
+  h1{margin:20px 0;font-size:calc(26px*var(--scale));}
+  button{padding:8px 18px;margin:4px 8px;border:none;border-radius:6px;cursor:pointer;font-size:var(--font);}
+  #arrayBox{position:relative;display:inline-block;}
+  @keyframes shake{0%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(5px);}
+                   75%{transform:translateX(-5px);}100%{transform:translateX(0);}}
+  #arrayBox.wrong{animation:shake .3s;background:rgba(244,67,54,.1);}
+  #array{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--gap);margin:32px 0;}
+  .bar{width:var(--bar-w);height:var(--bar-h);border-radius:6px;background:steelblue;line-height:var(--bar-h);
+       font-weight:bold;user-select:none;transition:transform .35s;font-size:var(--bar-font);}
+  .pivot{background:#ff9800!important;}
+  .pointer-i{box-shadow:0 0 0 4px #4caf50 inset;}
+  .pointer-j{box-shadow:0 0 0 4px #f44336 inset;}
+  .pointer-i.pointer-j{box-shadow:0 0 0 4px #f44336 inset,0 0 0 6px #4caf50;}
+  .in-range{outline:2px dashed #00e5ff;}
+  #segments{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--gap);height:6px;margin-top:-18px;}
+  #segments div{width:var(--bar-w);border-radius:3px;}
+  .seg-left{background:#448aff;} .seg-right{background:#4caf50;} .seg-none{background:transparent;}
+  .marker{position:absolute;width:0;height:0;pointer-events:none;opacity:0;transition:transform .35s ease,opacity .15s;}
+  #marker-i{border-left:calc(14px*var(--scale)) solid transparent;border-right:calc(14px*var(--scale)) solid transparent;
+            border-bottom:calc(18px*var(--scale)) solid #4caf50;bottom:calc(-22px*var(--scale));}
+  #marker-j{border-left:calc(14px*var(--scale)) solid transparent;border-right:calc(14px*var(--scale)) solid transparent;
+            border-bottom:calc(18px*var(--scale)) solid #f44336;bottom:calc(-22px*var(--scale));}
+  #controls{margin-top:calc(32px*var(--scale));}
+  #timer{font-size:calc(18px*var(--scale));margin:calc(32px*var(--scale)) 0;}
+  #leaderboard h2{margin:8px 0;} #leaderboard ol{text-align:left;display:inline-block;padding-left:20px;}
+  
+  .scatter-img,.wrong-img{position:absolute;width:300px;opacity:0;transition:opacity .5s;pointer-events:none;z-index:999;}
+  .scatter-img{top:5%;}.wrong-img{top:20%;left:50%;transform:translateX(-50%);}
+
+  #manualInputBox input{padding:6px 10px;width:450px;border-radius:4px;border:0;font-size:var(--font);}
+
+  #musicBackgroundImg{
+    position: fixed;
+    bottom: 75px;
+    right: 15px;
+    width: 275px;
+    height: auto;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    pointer-events: none;
+    z-index: -1;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3)
+  }
+  #moreBtn{
+    position: fixed;
+    bottom: 15px;
+    left: 15px;
+    z-index: 1000;
+    padding: 6px 10px;
+  }
+  #morePopup, #gulagPopup{
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #CD0000;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    z-index: 1001;
+    display: none;
+    text-align: center;
+  }
+  #morePopup p, #gulagPopup p {margin-bottom: 15px; font-size: var(--font);}
+  #morePopup button, #gulagPopup button {margin: 5px;}
+
+  #musicControls{
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 5px; 
+  }
+  #musicControls button{
+    padding: 6px 10px;
+  }
+</style>
 </head>
+
 <body>
-  <h1>Quick-Sort 小遊戲</h1>
-  <p id="instruction">點擊「開始」產生一組隨機序列，依提示操作！</p>
-  <button id="startBtn">開始</button>
-  <img id="scatter" class="scatter-img" alt="提示"/>
-  <img id="wrongImg" class="wrong-img" alt="錯誤提示"/>
-  <div id="timer" style="display:none">時間：0.0s</div>
-  <div id="arrayBox">
-    <div id="array"></div>
-    <div id="marker-i" class="marker"></div>
-    <div id="marker-j" class="marker"></div>
-  </div>
-  <div id="segments"></div>
-  <div id="controls"></div>
-  <div id="leaderboard"></div>
+<h1>Quick-Sort 小遊戲</h1>
+
+<div id="modeSelect">
+  <p style="margin-bottom:8px">請選擇陣列產生方式：</p>
+  <button id="btnRandom">隨機產生</button>
+  <button id="btnManual">手動輸入</button>
+</div>
+  
+<div id="manualInputBox" style="display:none">
+  <input id="manualInput" type="text" placeholder="以逗號分隔的整數, 0-100, 上限11個"/>
+  <button id="btnManualSubmit">確認</button>
+</div>
+  
+<p id="instruction" style="margin-top:16px;white-space: pre-wrap;">選好模式後，再按「開始」！</p>
+
+<button id="startBtn" style="display:none">開始</button>
+<button id="moreBtn">更多</button>
+
+<div id="morePopup">
+  <p>товарищ (Comrade)?</p>
+  <button id="btnStalinStart">Да (Yes)</button>
+  <button id="btnStalinCancel">нет (No)</button>
+</div>
+
+<div id="gulagPopup" style="display:none">
+  <p>歡迎來到古拉格大飯店</p>
+  <button id="btnGulagOk">重來</button>
+</div>
+
+  
+<button id="startBtn" style="display:none">開始</button>
+<button id="moreBtn"  style="display:none">更多</button>
+  
+<img id="scatter" class="scatter-img" alt="提示"/>
+<img id="wrongImg" class="wrong-img" alt="錯誤提示"/>  
+
+<div id="timer" style="display:none">時間：0.0s</div>
+
+<div id="arrayBox">
+  <div id="array"></div> <div id="marker-i" class="marker"></div>
+  <div id="marker-j" class="marker"></div>
+</div>
+<div id="segments"></div> <div id="controls"></div> <button id="restartBtn" style="display:none">重新開始</button>
+  
+<div id="leaderboard"></div>
+
+<audio id="backgroundMusic" loop></audio> <div id="musicControls">
+  <button id="prevMusicBtn">⏮</button>
+  <button id="musicToggleBtn">► Play</button> <button id="nextMusicBtn">⏭</button>
+</div>
+<audio id="sfxSound"></audio>
+
+<!-- <button id="musicToggleBtn" style="position: fixed; bottom: 15px; right: 15px; z-index: 1000; padding: 6px 10px;">
+    ▶️ Play Music
+</button> -->
+<img id="musicBackgroundImg" src="" alt="Music Background">
 
 <script>
-let arr=[],N=7;
-const $=id=>document.getElementById(id);
-const instr=$('instruction');
-const scatter=$('scatter');
-const wrongImg=$('wrongImg');
+let arr = [], manualArray = null, creationMode = null, currentSortType = null, N = 7;
+const $ = id => document.getElementById(id);
+const instr   = $('instruction');
+const scatter = $('scatter');
+const wrongImg= $('wrongImg');
 const scatterSrcs=['picture/img1.webp','picture/img2.webp','picture/img3.webp','picture/img4.webp','picture/img5.webp','picture/img6.webp'];
 const wrongSrcs=['picture2/img1.webp','picture2/img2.webp','picture2/img3.webp','picture2/img4.webp','picture2/img5.webp','picture2/img6.webp'];
-let curRange=null,segInfo=null,scatterCount=0,wrongCount=0;
+let curRange=null, segInfo=null, scatterCount=0, wrongCount=0;
+let stalinSuspicion = 0;
+const SUSPICION_THRESHOLD = 3;
 
-function randArr(n){const a=[];while(a.length<n){const v=Math.floor(Math.random()*90)+10;if(!a.includes(v))a.push(v);}return a;}
+const musicPlayer = $('backgroundMusic');
+const musicButton = $('musicToggleBtn');
+const prevButton = $('prevMusicBtn');
+const nextButton = $('nextMusicBtn');
+const musicBgImg = $('musicBackgroundImg');
+
+const moreBtn = $('moreBtn');
+const morePopup = $('morePopup');
+const btnStalinStart = $('btnStalinStart');
+const btnStalinCancel = $('btnStalinCancel');
+const gulagPopup = $('gulagPopup');
+const btnGulagOk = $('btnGulagOk');
+
+const musicPlaylist = [
+  {src: 'sounds/The Red Sun in the Sky.mp3', img: 'covers/mou.jpg'},
+  {src: 'sounds/Stalin_roll.mp3', img: 'covers/Stalin_roll.jpg'},
+];
+let currentTrackIndex = 0;
+let isMusicPlaying = false;
+
+morePopup.style.display = 'none';
+gulagPopup.style.display = 'none';
+const originalBgColor = '#1e1e2f';
+const musicBgColor = '#8b0000';
+
+function loadTrack(index) {
+  currentTrackIndex = (index + musicPlaylist.length) % musicPlaylist.length;
+  const track = musicPlaylist[currentTrackIndex];
+  musicPlayer.src = track.src;
+  musicBgImg.src = track.img;
+  musicPlayer.load();
+}
+
+function playCurrentTrack() {
+  musicPlayer.play().then(() => {
+    musicButton.textContent = '⏸ Pause';
+    musicBgImg.style.opacity = 1;
+    document.body.style.backgroundColor = musicBgColor;
+    isMusicPlaying = true;
+  })
+}
+
+function pauseMusic() {
+  musicPlayer.pause();
+  musicButton.textContent = '► Play';
+  musicBgImg.style.opacity = 0;
+  document.body.style.backgroundColor = originalBgColor;
+  isMusicPlaying = false;
+}
+loadTrack(currentTrackIndex);
+musicPlayer.volume = 0.25;
+
+if(musicPlayer && musicButton && prevButton && nextButton){
+  musicButton.onclick = () => {
+    if (isMusicPlaying) {
+      pauseMusic();
+    }else{
+      playCurrentTrack();
+    }
+  };
+
+  prevButton.onclick = () => {
+    loadTrack(currentTrackIndex - 1);
+    if(isMusicPlaying){
+      playCurrentTrack();
+    }
+  };
+
+  nextButton.onclick = () => {
+    loadTrack(currentTrackIndex + 1);
+    if(isMusicPlaying){
+      playCurrentTrack();
+    }
+  };
+  musicPlayer.onended = () => {
+    loadTrack(currentTrackIndex + 1);
+    playCurrentTrack();
+  };
+}
+// if(musicPlayer && musicButton){ 
+
+//   musicButton.onclick = () => {
+//     if(isMusicPlaying) {
+//       musicPlayer.pause();
+//       musicButton.textContent = '▶️ Play Music';
+//       musicBgImg.style.opacity = 0;
+//       document.body.style.backgroundColor = originalBgColor;
+//     }else{
+//       musicPlayer.play().then(() => {
+//         musicButton.textContent = '⏸️ Pause Music';
+//         musicBgImg.style.opacity = 1
+//         document.body.style.backgroundColor = musicBgColor;
+//       })
+//     }
+//     if(!musicPlayer.paused || isMusicPlaying){ 
+//       isMusicPlaying = !isMusicPlaying;
+//     }
+//   };
+// }
+
+$('btnRandom').onclick = () => {
+  creationMode = 'random';
+  currentSortType = 'quick';
+  $('modeSelect').style.display = 'none';
+  $('startBtn').style.display = 'inline-block';
+  moreBtn.style.display = 'none'
+  instr.textContent = '隨機模式 – 按「開始」開始遊戲！';
+};
+
+$('btnManual').onclick = () => {
+  $('manualInputBox').style.display = 'block';
+  $('modeSelect').style.display = 'none';
+  moreBtn.style.display = 'none'
+  instr.textContent='按確認開始遊戲 :0';
+};
+
+$('btnManualSubmit').onclick = () => {
+  const raw = $('manualInput').value.trim();
+  const parts = raw.split(',').map(s => s.trim());
+  const nums = [];
+  for (let i = 0; i < parts.length; i++) {
+    const num = Number(parts[i]);
+
+    if (isNaN(num) || !Number.isInteger(num) || num < 0 || num > 100) {
+      alert('陣列中的數字必須是介於 0 到 100 的整數！');
+      return;
+    }
+    nums.push(num);
+  }
+  if (nums.length > 11) {
+    alert('輸入陣列長度不能超過 11！');
+    return;
+  }
+  const unique = Array.from(new Set(nums));
+  if(unique.length===0){
+    alert('請至少輸入一個有效整數！');
+    return;
+  }
+  if(unique.length!==nums.length){
+    alert('所有整數必須互不相同！');
+    return;
+  }
+  manualArray  = unique;
+  creationMode = 'manual';
+  currentSortType = 'quick';
+  $('manualInputBox').style.display = 'none';
+  $('startBtn').style.display       = 'inline-block';
+  instr.textContent = `已輸入 ${manualArray.length} 個數字 - 按「開始」！`;
+};
+
+moreBtn.onclick = () => {
+    morePopup.style.display = 'block';
+};
+
+btnStalinCancel.onclick = () => {
+    morePopup.style.display = 'none';
+};
+
+btnStalinStart.onclick = () => {
+    creationMode = 'stalin';
+    currentSortType = 'stalin';
+    morePopup.style.display = 'none';
+    $('modeSelect').style.display = 'none';
+    moreBtn.style.display = 'none';
+    $('startBtn').style.display = 'inline-block';
+    instr.textContent = 'Stalin Sort 模式 - 按「開始」開始遊戲！';
+};
+
+
+function randArr(n){
+  const a = [];
+  while(a.length < n){
+    const v = Math.floor(Math.random()*90) + 10; 
+    if(!a.includes(v)) a.push(v);
+  }
+  return a;
+}
 
 function renderBars({pivot=null,i=null,j=null}={}){
   const box=$('array');box.innerHTML='';
@@ -83,19 +350,130 @@ function renderBars({pivot=null,i=null,j=null}={}){
   renderSegments();
   moveMarker('marker-i',i);moveMarker('marker-j',j);
 }
-function moveMarker(id,idx){const m=$(id);if(idx==null||idx<0||idx>=arr.length){m.style.opacity=0;return;}const bar=$('array').children[idx];const x=bar.offsetLeft+bar.offsetWidth/2-m.offsetWidth/2;m.style.transform=`translateX(${x}px)`;m.style.opacity=1;}
-function renderSegments(){const seg=$('segments');seg.innerHTML='';arr.forEach((_,idx)=>{const d=document.createElement('div');d.className='seg-none';if(segInfo){const{l,m,r}=segInfo;if(idx>=l&&idx<=m-1)d.className='seg-left';else if(idx>=m+1&&idx<=r)d.className='seg-right';}seg.appendChild(d);});}
-function swapAnim(a,b){return new Promise(done=>{const box=$('array'),A=box.children[a],B=box.children[b];const dx=B.offsetLeft-A.offsetLeft;A.style.transform=`translateX(${dx}px)`;B.style.transform=`translateX(${-dx}px)`;setTimeout(()=>{[arr[a],arr[b]]=[arr[b],arr[a]];renderBars({pivot:pivotIdx,i,j});done();},360);});}
-function ask(opts){return new Promise(res=>{const ctl=$('controls');ctl.innerHTML='';opts.forEach(o=>{const btn=document.createElement('button');btn.textContent=o.label;btn.onclick=()=>res(o.id);ctl.appendChild(btn);});});}
-function showCorrect(){scatterCount++;scatter.src=scatterSrcs[scatterCount%scatterSrcs.length];scatter.style.opacity='1';if(scatterCount%2===1){scatter.style.left='5%';scatter.style.right='';}else{scatter.style.right='5%';scatter.style.left='';}setTimeout(()=>scatter.style.opacity='0',1000);}function showWrong(){const box=$('arrayBox');box.classList.add('wrong');wrongCount++;wrongImg.src=wrongSrcs[wrongCount%wrongSrcs.length];wrongImg.style.opacity='1';setTimeout(()=>{box.classList.remove('wrong');wrongImg.style.opacity='0';},1000);}
-let startTime,timerId;function startTimer(){$('timer').style.display='block';startTime=Date.now();timerId=setInterval(()=>{$('timer').textContent=`時間：${((Date.now()-startTime)/1000).toFixed(1)}s`;},100);}function stopTimer(){clearInterval(timerId);return(Date.now()-startTime)/1000;}
-function saveScore(name,time){const key='qsLeaderboard';const list=JSON.parse(localStorage.getItem(key)||'[]');list.push({name,time});list.sort((a,b)=>a.time-b.time);localStorage.setItem(key,JSON.stringify(list.slice(0,10)));return list.slice(0,10);}function renderLeaderboard(list){const lb=$('leaderboard');lb.innerHTML='';if(!list.length)return;lb.innerHTML='<h2>排行榜（Top10）</h2>';const ol=document.createElement('ol');list.forEach(({name,time})=>{const li=document.createElement('li');li.textContent=`${name} – ${time.toFixed(1)}s`;ol.appendChild(li);});lb.appendChild(ol);}  
+function moveMarker(id,idx){
+  const m=$(id);
+  if(idx==null||idx<0||idx>=arr.length){m.style.opacity=0;return;}
+  const bar=$('array').children[idx];
+  const x=bar.offsetLeft+bar.offsetWidth/2-m.offsetWidth/2;
+  m.style.transform=`translateX(${x}px)`;m.style.opacity=1;
+}
+function renderSegments(){
+  const seg=$('segments');seg.innerHTML='';
+  arr.forEach((_,idx)=>{
+    const d=document.createElement('div');d.className='seg-none';
+    if(segInfo){const{l,m,r}=segInfo;
+      if(idx>=l&&idx<=m-1)d.className='seg-left';
+      else if(idx>=m+1&&idx<=r)d.className='seg-right';
+    }
+    seg.appendChild(d);
+  });
+}
+function swapAnim(a,b){
+  return new Promise(done=>{
+    const box=$('array'),A=box.children[a],B=box.children[b];
+    const dx=B.offsetLeft-A.offsetLeft;
+    A.style.transform=`translateX(${dx}px)`;
+    B.style.transform=`translateX(${-dx}px)`;
+    setTimeout(()=>{
+      [arr[a],arr[b]] = [arr[b],arr[a]];
+      renderBars({pivot:pivotIdx,i,j});
+      done();
+    },360);
+  });
+}
+
+function removeAnim(indexToRemove) {
+  return new Promise(resolve => {
+    const box = $('array');
+    const barToRemove = box.children[indexToRemove];
+    if(barToRemove){
+      const sfxSound = $('sfxSound');
+      sfxSound.src = 'sounds/Nagant M1895.mp3';
+      sfxSound.load();
+      sfxSound.play();
+      renderBars({i: indexToRemove + 1, removedIndex: indexToRemove});
+      setTimeout(() => {
+        arr.splice(indexToRemove, 1);
+        renderBars({i: indexToRemove});
+        resolve();
+      }, 400);
+    }
+  });
+}
+
+function ask(opts){
+  return new Promise(res=>{
+    const ctl=$('controls');ctl.innerHTML='';
+    opts.forEach(o=>{
+      const btn=document.createElement('button');
+      btn.textContent=o.label;
+      btn.onclick=()=>res(o.id);
+      ctl.appendChild(btn);
+    });
+  });
+}
+function showCorrect(){
+  const sfxSound = $('sfxSound');
+  sfxSound.src = 'sounds/coin_sfx.mp3';
+  sfxSound.load();
+  sfxSound.play();
+  scatterCount++;
+  scatter.src=scatterSrcs[scatterCount%scatterSrcs.length];
+  scatter.style.opacity='1';
+  scatter.style.left = scatterCount%2 ? '5%' : '';
+  scatter.style.right= scatterCount%2 ? ''   : '5%';
+  setTimeout(()=>scatter.style.opacity='0',1000);
+}
+function showWrong(){
+  const box=$('arrayBox');box.classList.add('wrong');
+  const sfxSound = $('sfxSound');
+  sfxSound.src = 'sounds/punch_sfx.mp3';
+  sfxSound.load();
+  sfxSound.play();
+  wrongCount++;
+  wrongImg.src=wrongSrcs[wrongCount%wrongSrcs.length];
+  wrongImg.style.opacity='1';
+  setTimeout(()=>{
+    box.classList.remove('wrong');
+    wrongImg.style.opacity='0';
+  },1000);
+}
+let startTime,timerId;
+function startTimer(){
+  $('timer').style.display='block';
+  startTime=Date.now();
+  timerId=setInterval(()=>{
+    $('timer').textContent=`時間：${((Date.now()-startTime)/1000).toFixed(1)}s`;
+    $('timer').style.display='none';
+  },100);
+}
+function stopTimer(){clearInterval(timerId);return(Date.now()-startTime)/1000;}
+function saveScore(name,time){
+  const key='qsLeaderboard';
+  const list=JSON.parse(localStorage.getItem(key)||'[]');
+  list.push({name,time});list.sort((a,b)=>a.time-b.time);
+  localStorage.setItem(key,JSON.stringify(list.slice(0,10)));
+  return list.slice(0,10);
+}
+function renderLeaderboard(list){
+  const lb=$('leaderboard');lb.innerHTML='';
+  if(!list.length)return;
+  lb.innerHTML='<h2>排行榜（Top10）</h2>';
+  const ol=document.createElement('ol');
+  list.forEach(({name,time})=>{
+    const li=document.createElement('li');
+    li.textContent=`${name} – ${time.toFixed(1)}s`;
+    ol.appendChild(li);
+  });
+  lb.appendChild(ol);
+    lb.style.display = 'block';
+}
 
 let pivotIdx,i,j,pv;
+
 async function partition(l,r){
   pivotIdx=l;pv=arr[l];i=l+1;j=r;
   while(true){
-    // move i 左指針
     while(i<=j){
       renderBars({pivot:pivotIdx,i,j});
       instr.textContent=`左指針 i=${i}，值 ${arr[i]}。要停嗎？`;
@@ -106,7 +484,6 @@ async function partition(l,r){
         if(arr[i]<pv){showCorrect();i++;}else{showWrong();continue;}
       }
     }
-    // move j 右指針
     while(i<=j){
       renderBars({pivot:pivotIdx,i,j});
       instr.textContent=`右指針 j=${j}，值 ${arr[j]}。要停嗎？`;
@@ -118,12 +495,11 @@ async function partition(l,r){
       }
     }
     renderBars({pivot:pivotIdx,i,j});
-    if(i>=j)break;  // 指針交會
+    if(i>=j)break;
     instr.textContent='兩指針尚未交錯，按「交換」進行交換';
     await ask([{id:'swap',label:'交換'}]);
-    await swapAnim(i,j);showCorrect();i++;j--; // 交換後指針前進 / 後退
+    await swapAnim(i,j);showCorrect();i++;j--;
   }
-  // 指針已交會，檢查 pivot 是否需交換
   renderBars({pivot:pivotIdx,i,j});
   if(arr[pivotIdx]>arr[j]){
     instr.textContent='pivot 與 j 需要交換，按「繼續」';
@@ -133,9 +509,8 @@ async function partition(l,r){
     instr.textContent='pivot 位置正確，按「繼續」';
     await ask([{id:'next',label:'繼續'}]);
   }
-  return j; // 回傳分割點
+  return j;
 }
-// **DFS 左側優先遞迴**
 async function qsort(l,r){
   if(l<r){
     curRange=[l,r];
@@ -145,33 +520,181 @@ async function qsort(l,r){
     if(leftLen<=1&&rightLen<=1)msg+='左右子區間皆長度 1，皆已完成。';
     else if(leftLen<=1)msg+=`左側只有 1 個元素（已完成），下一步將處理右側 [${m+1}, ${r}]。`;
     else if(rightLen<=1)msg+=`右側只有 1 個元素（已完成），下一步將處理左側 [${l}, ${m-1}]。`;
-    else msg+=`左：[${l}, ${m-1}]　右：[${m+1}, ${r}]`;
-    msg+='　按「繼續」。';
+    else msg+=`左：[${l}, ${m-1}] 右：[${m+1}, ${r}]`;
+    msg+=' 按「繼續」。';
     segInfo={l,m,r};renderSegments();instr.textContent=msg;
     await ask([{id:'next',label:'繼續'}]);
     segInfo=null;renderSegments();
-    // **先遞迴左側，再遞迴右側 (DFS)**
     await qsort(l,m-1);
     await qsort(m+1,r);
   }
 }
-// ------ 入口 ------
+
+function triggerGulag(){
+  stopTimer();
+  gulagPopup.style.display = 'block';
+
+}
+
+btnGulagOk.onclick = () => {
+  gulagPopup.style.display = 'none';
+  resetGame();
+}
+
+async function stalinSort(){
+  if(currentTrackIndex != 1 && !isMusicPlaying){
+    currentTrackIndex = 1;
+    const track = musicPlaylist[currentTrackIndex];
+    musicPlayer.src = track.src;
+    musicBgImg.src = track.img;
+    musicPlayer.load();
+    playCurrentTrack();
+  }
+
+  let i = 1;
+  while(i < arr.length){
+    renderBars({ i: i });
+    const currentElement = arr[i];
+    const previousElement = arr[i - 1];
+    instr.textContent = `Stalin Sort: 檢查 ${i} (值 ${currentElement}) 是否 >= 前一個 ${i-1} (值 ${previousElement})?\n懷疑值：${Math.round(stalinSuspicion/SUSPICION_THRESHOLD*100)}%`;
+
+    const choice = await ask([
+      {id: 'keep', label: '保留 (>=)'},
+      {id: 'remove', label: '移除 (<)'}
+    ]);
+
+    if(choice === 'keep'){
+      if(currentElement >= previousElement){
+        showCorrect();
+        instr.textContent = `Stalin Sort: ${currentElement} >= ${previousElement}。通過，檢查下一個。`;
+        i++;
+      }else{
+        showWrong();
+        stalinSuspicion++;
+        instr.textContent = `Stalin Sort: 錯誤！${currentElement} < ${previousElement}。應該移除！`;
+        if(stalinSuspicion >= SUSPICION_THRESHOLD){
+          triggerGulag();
+          return;
+        }
+      }
+    }else if(choice === 'remove'){
+      if(currentElement < previousElement){ 
+        showCorrect();
+        instr.textContent = `Stalin Sort: ${currentElement} < ${previousElement}。移除 ${i}。`;
+        await ask([{ id: 'confirm_remove', label: 'казнить' }]);
+        await removeAnim(i);
+        if (i >= arr.length) break;
+      }else{
+        showWrong();
+        stalinSuspicion++;
+        instr.textContent = `Stalin Sort: 錯誤！${currentElement} >= ${previousElement}。應該保留！`;
+        if(stalinSuspicion >= SUSPICION_THRESHOLD){
+          triggerGulag();
+          return;
+        }
+      }
+    }
+    await new Promise(res => setTimeout(res, 300));
+  }
+  renderBars();
+}
+
 const btnStart=$('startBtn');
 btnStart.onclick=async function(){
-  btnStart.style.display='none';$('leaderboard').style.display='none';
-  arr=randArr(N);curRange=null;segInfo=null;renderBars();
+  this.style.display='none';
+  $('leaderboard').style.display='none';
+  $('controls').innerHTML = '';
+  $('restartBtn').style.display = 'none';
+  gulagPopup.style.display = 'none';
+
+  if(creationMode==='random'){
+    arr = randArr(7);
+  }else if(creationMode==='manual'){
+    arr = manualArray.slice();
+    N   = arr.length;
+  }else if(creationMode === 'stalin'){
+    arr = randArr(7);
+    stalinSuspicion = 0;
+  }else{
+    alert('Unexpected Error');
+    return;
+  }
+
+  curRange=null; segInfo=null; renderBars();
+  scatterCount = 0;
+  wrongCount = 0;
   instr.textContent='排序開始！依提示操作';
   startTimer();
-  await qsort(0,arr.length-1);
-  curRange=null;renderBars();
+
+  if(currentSortType === 'quick'){
+    await qsort(0, arr.length - 1);
+  }else if(currentSortType === 'stalin'){
+    await stalinSort();
+  }
+
+  curRange=null; renderBars();
   const used=stopTimer();
-  instr.textContent='完成！總耗時 '+used.toFixed(1)+'s';
-  const name=prompt('輸入暱稱（留空則匿名）：')||'匿名';
-  renderLeaderboard(saveScore(name,used));
-  $('leaderboard').style.display='block';
-  btnStart.style.display='inline-block';
+  if(currentSortType === 'quick'){
+    instr.textContent='排序完成！總耗時 '+used.toFixed(1)+' 秒。';
+  }else if(currentSortType === 'stalin'){
+    if(stalinSuspicion < SUSPICION_THRESHOLD){
+      instr.textContent='同志你做得真好\n總耗時 '+used.toFixed(1)+' 秒。';
+      const name=prompt('輸入暱稱（留空則匿名）：')||'匿名';
+      renderLeaderboard(saveScore(name,used));
+      $('restartBtn').style.display = 'inline-block';
+    }else{
+      instr.textContent='失敗';
+      $('restartBtn').style.display = 'inline-block';
+    }
+  }
+  $('controls').innerHTML = '';
+  $('marker-i').style.opacity = 0;
+  $('marker-j').style.opacity = 0;
+  $('segments').innerHTML = '';
 };
-renderLeaderboard(JSON.parse(localStorage.getItem('qsLeaderboard')||'[]'));
+
+function resetGame(){
+  stopTimer();
+  $('timer').style.display = 'none';
+  $('array').innerHTML = '';
+  $('segments').innerHTML = '';
+  $('controls').innerHTML = '';
+  $('restartBtn').style.display = 'none';
+  $('startBtn').style.display = 'none';
+  $('manualInputBox').style.display = 'none';
+  morePopup.style.display = 'none';
+  gulagPopup.style.display = 'none';
+  $('marker-i').style.opacity = 0;
+  $('marker-j').style.opacity = 0;
+  $('scatter').style.opacity = 0;
+  $('wrongImg').style.opacity = 0;
+  $('arrayBox').classList.remove('wrong');
+  $('leaderboard').style.display = 'none';
+
+  arr = [];
+  manualArray = null;
+  creationMode = null;
+  currentSortType = null;
+  curRange = null;
+  segInfo = null;
+  pivotIdx = null; i = null; j = null; pv = null;
+  startTime = null;
+  stalinSuspicion = 0;
+
+  $('manualInput').value = '';
+  instr.textContent = '選好模式後，再按「開始」！';
+  $('modeSelect').style.display = 'block';
+  moreBtn.style.display = 'inline-block';
+  renderLeaderboard(saveScore(name,used));
+}
+const btnRestart = $('restartBtn');
+btnRestart.onclick = resetGame;
+
+$('controls').innerHTML = '';
+$('segments').innerHTML = '';
+$('array').innerHTML = '';
+// renderLeaderboard(saveScore(name,used));
+
 </script>
 </body>
 </html>
